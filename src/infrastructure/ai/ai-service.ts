@@ -4,45 +4,45 @@ import { env } from '@config/env';
 
 export class AiService {
   private provider: IAiProvider;
-  
+
   constructor() {
     this.provider = this.initializeProvider();
   }
-  
+
   private initializeProvider(): IAiProvider {
     return new MockAiProvider();
   }
-  
+
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this.provider.analyzeData(data);
   }
-  
+
   async generateInsights(data: Record<string, unknown>): Promise<string[]> {
     return this.provider.generateInsights(data);
   }
-  
+
   async processTask(
-    type: string, 
+    type: string,
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     switch (type) {
       case 'data-analysis':
         return this.analyzeData(input);
-      
+
       case 'forecasting':
         return this.generateForecast(input);
-      
+
       case 'anomaly-detection':
         return this.detectAnomalies(input);
-      
+
       case 'recommendation':
         return this.generateRecommendations(input);
-      
+
       default:
         return { result: 'Task type not implemented' };
     }
   }
-  
+
   private async generateForecast(
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
@@ -52,7 +52,7 @@ export class AiService {
       timeRange: '30 days',
     };
   }
-  
+
   private async detectAnomalies(
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
@@ -62,7 +62,7 @@ export class AiService {
       riskLevel: 'low',
     };
   }
-  
+
   private async generateRecommendations(
     input: Record<string, unknown>
   ): Promise<Record<string, unknown>> {

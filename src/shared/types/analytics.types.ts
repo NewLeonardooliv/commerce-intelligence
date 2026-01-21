@@ -1,4 +1,4 @@
-export type AnalyticsMetric = 
+export type AnalyticsMetric =
   | 'revenue'
   | 'orders'
   | 'customers'

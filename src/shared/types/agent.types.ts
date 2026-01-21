@@ -1,6 +1,6 @@
 export type AgentStatus = 'idle' | 'processing' | 'completed' | 'failed';
 
-export type AgentCapability = 
+export type AgentCapability =
   | 'data-analysis'
   | 'pattern-recognition'
   | 'forecasting'

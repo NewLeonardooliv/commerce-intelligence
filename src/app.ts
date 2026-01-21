@@ -24,9 +24,7 @@ const app = new Elysia()
     documentation: '/swagger',
   }))
   .group(`/api/${env.apiVersion}`, (app) =>
-    app
-      .use(healthController)
-      .use(analyticsController)
+    app.use(healthController).use(analyticsController)
   )
   .listen(env.port);
 

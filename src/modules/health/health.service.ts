@@ -10,11 +10,11 @@ type HealthStatus = {
 
 class HealthService {
   private startTime: number;
-  
+
   constructor() {
     this.startTime = Date.now();
   }
-  
+
   async check(): Promise<HealthStatus> {
     return {
       status: 'healthy',
@@ -24,11 +24,11 @@ class HealthService {
       uptime: this.getUptime(),
     };
   }
-  
+
   async isReady(): Promise<boolean> {
     return true;
   }
-  
+
   private getUptime(): number {
     return Math.floor((Date.now() - this.startTime) / 1000);
   }

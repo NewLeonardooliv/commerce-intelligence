@@ -1,10 +1,7 @@
 import { Elysia } from 'elysia';
 import { analyticsService } from './analytics.service';
 import { successResponse } from '@shared/utils/response.util';
-import {
-  analyticsQuerySchema,
-  generateInsightsSchema,
-} from './analytics.schema';
+import { analyticsQuerySchema, generateInsightsSchema } from './analytics.schema';
 
 export const analyticsController = new Elysia({ prefix: '/analytics' })
   .post(

@@ -1,7 +1,7 @@
 import type {
   IAiProvider,
   AiCompletionRequest,
-  AiCompletionResponse
+  AiCompletionResponse,
 } from './ai-provider.interface';
 
 export class MockAiProvider implements IAiProvider {
