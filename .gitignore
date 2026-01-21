@@ -8,3 +8,4 @@ coverage/
 .vscode/
 .idea/
 database-sql/*.csv
+database-sql/*.json
