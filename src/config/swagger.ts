@@ -9,7 +9,6 @@ export const swaggerConfig = {
     },
     tags: [
       { name: 'Health', description: 'Health check endpoints' },
-      { name: 'Agents', description: 'AI agents management' },
       { name: 'Analytics', description: 'Data analytics endpoints' },
     ],
     servers: [

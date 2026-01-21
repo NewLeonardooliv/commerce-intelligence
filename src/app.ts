@@ -10,7 +10,6 @@ import { logger } from '@shared/middlewares/logger.middleware';
 import { requestId } from '@shared/middlewares/request-id.middleware';
 
 import { healthController } from '@modules/health/health.controller';
-import { agentsController } from '@modules/agents/agents.controller';
 import { analyticsController } from '@modules/analytics/analytics.controller';
 
 const app = new Elysia()
@@ -27,7 +26,6 @@ const app = new Elysia()
   .group(`/api/${env.apiVersion}`, (app) =>
     app
       .use(healthController)
-      .use(agentsController)
       .use(analyticsController)
   )
   .listen(env.port);

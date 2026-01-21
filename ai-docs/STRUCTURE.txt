@@ -83,7 +83,6 @@ Key Features:
 ✓ Modular architecture
 ✓ Clean code principles
 ✓ Type-safe with TypeScript
-✓ AI agents management
 ✓ Analytics with AI insights
 ✓ Comprehensive error handling
 ✓ Auto-generated API docs
