@@ -1,0 +1,93 @@
+commerce-intelligence/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                      # GitHub Actions CI/CD
+│
+├── examples/
+│   └── client.example.ts               # Eden Treaty client usage example
+│
+├── scripts/
+│   └── setup.sh                        # Setup automation script
+│
+├── src/
+│   ├── app.ts                          # Application entry point
+│   │
+│   ├── config/                         # Configuration
+│   │   ├── env.ts                      # Environment variables
+│   │   └── swagger.ts                  # Swagger config
+│   │
+│   ├── infrastructure/                 # Infrastructure layer
+│   │   ├── ai/
+│   │   │   ├── ai-provider.interface.ts
+│   │   │   ├── ai-service.ts
+│   │   │   └── mock-ai-provider.ts
+│   │   └── storage/
+│   │       └── in-memory-storage.ts
+│   │
+│   ├── modules/                        # Feature modules
+│   │   ├── agents/
+│   │   │   ├── agents.controller.ts
+│   │   │   ├── agents.schema.ts
+│   │   │   └── agents.service.ts
+│   │   ├── analytics/
+│   │   │   ├── analytics.controller.ts
+│   │   │   ├── analytics.schema.ts
+│   │   │   └── analytics.service.ts
+│   │   └── health/
+│   │       ├── health.controller.ts
+│   │       └── health.service.ts
+│   │
+│   └── shared/                         # Shared resources
+│       ├── errors/
+│       │   ├── app-error.ts
+│       │   └── error-handler.ts
+│       ├── interfaces/
+│       │   └── index.ts
+│       ├── middlewares/
+│       │   ├── logger.middleware.ts
+│       │   └── request-id.middleware.ts
+│       ├── types/
+│       │   ├── agent.types.ts
+│       │   ├── analytics.types.ts
+│       │   └── api.types.ts
+│       └── utils/
+│           ├── date.util.ts
+│           ├── id.util.ts
+│           └── response.util.ts
+│
+├── tests/                              # Unit tests
+│   ├── agents.test.ts
+│   ├── analytics.test.ts
+│   └── health.test.ts
+│
+├── .dockerignore                       # Docker ignore rules
+├── .editorconfig                       # Editor configuration
+├── .gitignore                          # Git ignore rules
+├── .prettierrc                         # Prettier configuration
+│
+├── API.md                              # API documentation
+├── CHANGELOG.md                        # Version history
+├── DEPLOYMENT.md                       # Deployment guide
+├── DEVELOPMENT.md                      # Development guide
+├── Dockerfile                          # Docker configuration
+├── PROJECT_STRUCTURE.md                # Architecture documentation
+├── README.md                           # Project overview
+│
+├── docker-compose.yml                  # Docker Compose setup
+├── package.json                        # Dependencies
+├── requests.http                       # HTTP request examples
+└── tsconfig.json                       # TypeScript configuration
+
+Key Features:
+✓ Modular architecture
+✓ Clean code principles
+✓ Type-safe with TypeScript
+✓ AI agents management
+✓ Analytics with AI insights
+✓ Comprehensive error handling
+✓ Auto-generated API docs
+✓ End-to-end type safety
+✓ Unit tests
+✓ Docker support
+✓ CI/CD ready
