@@ -11,7 +11,10 @@
     "test:watch": "bun test --watch",
     "type-check": "bun tsc --noEmit",
     "format": "bunx prettier --write \"src/**/*.ts\"",
-    "format:check": "bunx prettier --check \"src/**/*.ts\""
+    "format:check": "bunx prettier --check \"src/**/*.ts\"",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.1.1",
@@ -22,8 +25,9 @@
   },
   "devDependencies": {
     "@types/bun": "^1.1.13",
-    "typescript": "^5.7.2",
-    "prettier": "^3.4.2"
+    "drizzle-kit": "^0.31.8",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
   },
   "keywords": [
     "elysia",

@@ -10,6 +10,7 @@ export const swaggerConfig = {
     tags: [
       { name: 'Health', description: 'Health check endpoints' },
       { name: 'Analytics', description: 'Data analytics endpoints' },
+      { name: 'Chat', description: 'AI-powered chat with intelligent agents' },
     ],
     servers: [
       {

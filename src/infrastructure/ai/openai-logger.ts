@@ -52,7 +52,9 @@ class OpenAiLogger {
     // Log no console em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
       console.log(`[OpenAI] ${endpoint} - Model: ${model}`);
-      console.log(`  Tokens: ${totalTokens} (prompt: ${promptTokens}, completion: ${completionTokens})`);
+      console.log(
+        `  Tokens: ${totalTokens} (prompt: ${promptTokens}, completion: ${completionTokens})`
+      );
       console.log(`  Estimated cost: ${formatCost(estimatedCost)}`);
     }
   }
@@ -78,36 +80,42 @@ class OpenAiLogger {
     const totalCalls = this.logs.length;
     const totalTokens = this.getTotalTokens();
     const totalCost = this.getTotalCost();
-    
+
     // Agrupa por modelo
-    const byModel = this.logs.reduce((acc, log) => {
-      if (!acc[log.model]) {
-        acc[log.model] = {
-          calls: 0,
-          tokens: 0,
-          cost: 0,
-        };
-      }
-      acc[log.model].calls++;
-      acc[log.model].tokens += log.totalTokens;
-      acc[log.model].cost += log.estimatedCost;
-      return acc;
-    }, {} as Record<string, { calls: number; tokens: number; cost: number }>);
+    const byModel = this.logs.reduce(
+      (acc, log) => {
+        if (!acc[log.model]) {
+          acc[log.model] = {
+            calls: 0,
+            tokens: 0,
+            cost: 0,
+          };
+        }
+        acc[log.model].calls++;
+        acc[log.model].tokens += log.totalTokens;
+        acc[log.model].cost += log.estimatedCost;
+        return acc;
+      },
+      {} as Record<string, { calls: number; tokens: number; cost: number }>
+    );
 
     // Agrupa por endpoint
-    const byEndpoint = this.logs.reduce((acc, log) => {
-      if (!acc[log.endpoint]) {
-        acc[log.endpoint] = {
-          calls: 0,
-          tokens: 0,
-          cost: 0,
-        };
-      }
-      acc[log.endpoint].calls++;
-      acc[log.endpoint].tokens += log.totalTokens;
-      acc[log.endpoint].cost += log.estimatedCost;
-      return acc;
-    }, {} as Record<string, { calls: number; tokens: number; cost: number }>);
+    const byEndpoint = this.logs.reduce(
+      (acc, log) => {
+        if (!acc[log.endpoint]) {
+          acc[log.endpoint] = {
+            calls: 0,
+            tokens: 0,
+            cost: 0,
+          };
+        }
+        acc[log.endpoint].calls++;
+        acc[log.endpoint].tokens += log.totalTokens;
+        acc[log.endpoint].cost += log.estimatedCost;
+        return acc;
+      },
+      {} as Record<string, { calls: number; tokens: number; cost: number }>
+    );
 
     return {
       totalCalls,
@@ -116,7 +124,8 @@ class OpenAiLogger {
       byModel,
       byEndpoint,
       averageTokensPerCall: totalCalls > 0 ? Math.round(totalTokens / totalCalls) : 0,
-      averageCostPerCall: totalCalls > 0 ? formatCost(totalCost / totalCalls) : '$0.000000',
+      averageCostPerCall:
+        totalCalls > 0 ? formatCost(totalCost / totalCalls) : '$0.000000',
     };
   }
 

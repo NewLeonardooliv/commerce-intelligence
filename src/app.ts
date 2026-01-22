@@ -11,7 +11,7 @@ import { requestId } from '@shared/middlewares/request-id.middleware';
 
 import { healthController } from '@modules/health/health.controller';
 import { analyticsController } from '@modules/analytics/analytics.controller';
-import { aiController } from '@modules/ai/ai.controller';
+import { chatController } from '@modules/chat/chat.controller';
 
 const app = new Elysia()
   .use(cors())
@@ -25,7 +25,7 @@ const app = new Elysia()
     documentation: '/swagger',
   }))
   .group(`/api/${env.apiVersion}`, (app) =>
-    app.use(healthController).use(analyticsController).use(aiController)
+    app.use(healthController).use(analyticsController).use(chatController)
   )
   .listen(env.port);
 

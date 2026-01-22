@@ -1,6 +1,6 @@
 /**
  * OpenAI Models Configuration
- * 
+ *
  * Lista de modelos disponíveis e suas características.
  * Atualizado em: Janeiro 2024
  */
@@ -11,17 +11,17 @@ export const OPENAI_MODELS = {
   GPT_4: 'gpt-4',
   GPT_4_0125: 'gpt-4-0125-preview',
   GPT_4_1106: 'gpt-4-1106-preview',
-  
+
   // GPT-4 Optimized
   GPT_4O: 'gpt-4o',
   GPT_4O_MINI: 'gpt-4o-mini',
-  
+
   // GPT-3.5 Models (Mais rápidos e econômicos)
   GPT_3_5_TURBO: 'gpt-3.5-turbo',
   GPT_3_5_TURBO_16K: 'gpt-3.5-turbo-16k',
 } as const;
 
-export type OpenAiModel = typeof OPENAI_MODELS[keyof typeof OPENAI_MODELS];
+export type OpenAiModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS];
 
 /**
  * Características dos modelos
@@ -96,7 +96,7 @@ export function estimateCost(
   promptTokens: number,
   completionTokens: number
 ): number {
-  const specs = MODEL_SPECS[model];
+  const specs = MODEL_SPECS[model as keyof typeof MODEL_SPECS];
   if (!specs) return 0;
 
   const promptCost = (promptTokens / 1000) * specs.costPer1kPrompt;
@@ -116,5 +116,5 @@ export function formatCost(cost: number): string {
  * Obtém informações sobre um modelo
  */
 export function getModelInfo(model: OpenAiModel) {
-  return MODEL_SPECS[model] || null;
+  return MODEL_SPECS[model as keyof typeof MODEL_SPECS] || null;
 }

@@ -65,8 +65,7 @@ export class OpenAiProvider implements IAiProvider {
         throw error;
       }
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new AppError(`OpenAI API error: ${errorMessage}`, 500);
     }
   }
