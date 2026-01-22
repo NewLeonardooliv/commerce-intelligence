@@ -1,5 +1,6 @@
 import type { IAiProvider } from './ai-provider.interface';
 import { MockAiProvider } from './mock-ai-provider';
+import { OpenAiProvider } from './openai-provider';
 import { env } from '@config/env';
 
 export class AiService {
@@ -10,7 +11,15 @@ export class AiService {
   }
 
   private initializeProvider(): IAiProvider {
-    return new MockAiProvider();
+    const provider = env.ai.provider.toLowerCase();
+
+    switch (provider) {
+      case 'openai':
+        return new OpenAiProvider();
+      case 'mock':
+      default:
+        return new MockAiProvider();
+    }
   }
 
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {

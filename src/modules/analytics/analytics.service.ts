@@ -111,7 +111,7 @@ class AnalyticsService {
       severity: this.getRandomSeverity(),
       metrics,
       confidence: Math.random() * 0.3 + 0.7,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     }));
   }
 

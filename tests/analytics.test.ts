@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Elysia } from 'elysia';
 import { analyticsController } from '../src/modules/analytics/analytics.controller';
+import type { ApiResponse } from '../src/shared/types/api.types';
 
 describe('Analytics Module', () => {
   const app = new Elysia().use(analyticsController);
@@ -17,7 +18,7 @@ describe('Analytics Module', () => {
           granularity: 'day',
         }),
       })
-    ).then(res => res.json());
+    ).then(res => res.json()) as ApiResponse<any>;
 
     expect(response.success).toBe(true);
     expect(response.data).toHaveProperty('results');
@@ -26,7 +27,7 @@ describe('Analytics Module', () => {
   });
 
   it('should generate insights', async () => {
-    const response = await app.handle(
+    const res = await app.handle(
       new Request('http://localhost/analytics/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,18 +37,21 @@ describe('Analytics Module', () => {
           endDate: '2024-01-31',
         }),
       })
-    ).then(res => res.json());
+    );
+
+    const text = await res.text();
+    const response = JSON.parse(text) as ApiResponse<any[]>;
 
     expect(response.success).toBe(true);
     expect(Array.isArray(response.data)).toBe(true);
-    expect(response.data.length).toBeGreaterThan(0);
-    expect(response.data[0]).toHaveProperty('description');
+    expect(response.data!.length).toBeGreaterThan(0);
+    expect(response.data![0]).toHaveProperty('description');
   });
 
   it('should get metrics summary', async () => {
     const response = await app.handle(
       new Request('http://localhost/analytics/metrics')
-    ).then(res => res.json());
+    ).then(res => res.json()) as ApiResponse<any>;
 
     expect(response.success).toBe(true);
     expect(response.data).toHaveProperty('availableMetrics');

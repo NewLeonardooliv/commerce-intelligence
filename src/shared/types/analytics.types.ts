@@ -47,5 +47,5 @@ export type Insight = {
   severity: 'low' | 'medium' | 'high';
   metrics: AnalyticsMetric[];
   confidence: number;
-  createdAt: Date;
+  createdAt: string;
 };
