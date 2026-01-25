@@ -17,6 +17,7 @@
 │  │ Output: {                                                 │  │
 │  │   intent: "Contar total de produtos no catálogo",        │  │
 │  │   requiresData: true,                                     │  │
+│  │   requiresExternalTools: false,                           │  │
 │  │   confidence: 0.9                                         │  │
 │  │ }                                                         │  │
 │  └───────────────────────────────────────────────────────────┘  │
@@ -43,7 +44,23 @@
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    3️⃣  RESPONDER AGENT                           │
+│                    3️⃣  MCP AGENT ⭐ NOVO                         │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ Função: Usar ferramentas e recursos externos via MCP      │  │
+│  │ Input:  userQuery + interpretation + availableTools       │  │
+│  │ Decisão: Verificar se precisa de dados externos           │  │
+│  │ Tool:   web_search("e-commerce trends 2024")             │  │
+│  │ Output: {                                                 │  │
+│  │   tool: "web_search",                                     │  │
+│  │   server: "mcp-web",                                      │  │
+│  │   data: "E-commerce cresceu 25% em 2024..."              │  │
+│  │ }                                                         │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    4️⃣  RESPONDER AGENT                           │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │ Função: Criar resposta baseada nos dados                  │  │
 │  │ Input:  queryResults + interpretation                     │  │
@@ -56,7 +73,7 @@
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                   4️⃣  SUGGESTION AGENT ⭐ NOVO                   │
+│                   5️⃣  SUGGESTION AGENT                           │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │ Função: Gerar sugestões de próximas perguntas             │  │
 │  │ Input:  userQuery + context + rawResponse                │  │
@@ -70,7 +87,7 @@
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    5️⃣  ENHANCER AGENT                            │
+│                    6️⃣  ENHANCER AGENT                            │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │ Função: Refinar resposta e adicionar metadados            │  │
 │  │ Input:  rawResponse + suggestions                         │  │
@@ -115,7 +132,7 @@
 
 | Input | Output |
 |-------|--------|
-| Pergunta do usuário | `intent`, `entities`, `requiresData`, `confidence` |
+| Pergunta do usuário | `intent`, `entities`, `requiresData`, `requiresExternalTools`, `confidence` |
 
 **Exemplo**:
 ```typescript
@@ -123,6 +140,7 @@ Input:  "Quantos clientes temos?"
 Output: { 
   intent: "Contar total de clientes no banco",
   requiresData: true,
+  requiresExternalTools: false,
   confidence: 0.95
 }
 ```
@@ -145,22 +163,38 @@ Output: [{ category: "X", count: 100 }, ...]
 
 ---
 
-### 3️⃣ Responder Agent
+### 3️⃣ MCP Agent ⭐ NOVO
+**O que faz**: Usa ferramentas e recursos externos via MCP
+
+| Input | Output |
+|-------|--------|
+| `userQuery` + `interpretation` + `availableTools` | Resultado das ferramentas MCP |
+
+**Exemplo**:
+```typescript
+Input:  { userQuery: "Busque tendências de e-commerce", requiresExternalTools: true }
+Tool:   web_search("e-commerce trends 2024")
+Output: { tool: "web_search", server: "mcp-web", data: "..." }
+```
+
+---
+
+### 4️⃣ Responder Agent
 **O que faz**: Cria resposta em linguagem natural
 
 | Input | Output |
 |-------|--------|
-| `queryResults` + `interpretation` | Texto da resposta |
+| `queryResults` + `mcpResults` + `interpretation` | Texto da resposta |
 
 **Exemplo**:
 ```typescript
-Input:  [{ category: "A", count: 100 }, ...]
+Input:  [{ category: "A", count: 100 }, ...] + mcpResults
 Output: "Temos produtos em 20 categorias, sendo as principais..."
 ```
 
 ---
 
-### 4️⃣ Suggestion Agent ⭐ NOVO
+### 5️⃣ Suggestion Agent
 **O que faz**: Sugere próximas perguntas relevantes
 
 | Input | Output |
@@ -179,7 +213,7 @@ Output: [
 
 ---
 
-### 5️⃣ Enhancer Agent
+### 6️⃣ Enhancer Agent
 **O que faz**: Refina resposta final e adiciona metadados
 
 | Input | Output |
@@ -208,9 +242,11 @@ userQuery
     ↓
 [Data Query] → queryResults + sql
     ↓
+[MCP Agent]  → mcpResults (se necessário) ⭐
+    ↓
 [Responder]  → rawResponse
     ↓
-[Suggestion] → suggestions ⭐
+[Suggestion] → suggestions
     ↓
 [Enhancer]   → finalResponse + metadata
     ↓
@@ -224,17 +260,19 @@ JSON para usuário
 ### Sempre Executam
 - ✅ Interpreter
 - ✅ Responder
-- ✅ Suggestion ⭐
+- ✅ Suggestion
 - ✅ Enhancer
 
 ### Execução Condicional
 - ⚠️ Data Query: Só se `requiresData: true`
+- ⚠️ MCP Agent: Só se `requiresExternalTools: true` ou keywords detectadas ⭐
 
 **Exemplo sem dados**:
 ```
 Pergunta: "Olá, tudo bem?"
-→ Interpreter: requiresData = false
+→ Interpreter: requiresData = false, requiresExternalTools = false
 → Data Query: PULADO
+→ MCP Agent: PULADO ⭐
 → Responder: "Olá! Como posso ajudar?"
 → Suggestion: Sugestões de boas-vindas
 → Enhancer: Refina
@@ -248,14 +286,15 @@ Pergunta: "Olá, tudo bem?"
 
 | Agente | Tempo (ms) | % do Total |
 |--------|------------|------------|
-| Interpreter | 200-300 | 15% |
-| Data Query | 500-800 | 40% |
-| Responder | 300-500 | 25% |
-| Suggestion | 200-300 | 10% |
-| Enhancer | 200-300 | 10% |
-| **TOTAL** | **1400-2200** | **100%** |
+| Interpreter | 200-300 | 12% |
+| Data Query | 500-800 | 32% |
+| MCP Agent | 300-600 | 20% |
+| Responder | 300-500 | 18% |
+| Suggestion | 200-300 | 9% |
+| Enhancer | 200-300 | 9% |
+| **TOTAL** | **1700-2800** | **100%** |
 
-*Com IA real (OpenAI GPT-4)*
+*Com IA real (OpenAI GPT-4) e MCP habilitado*
 
 ---
 
@@ -302,12 +341,13 @@ conversationHistory: [
 ```typescript
 // orchestrator.ts
 export class AgentOrchestrator {
-  constructor() {
+  constructor(config: OrchestratorConfig) {
     this.agents = [
       new InterpreterAgent(),
       new DataQueryAgent(),
+      new MCPAgent({...}),      // ← Novo agente MCP
       new ResponderAgent(),
-      new SuggestionAgent(),  // ← Fácil adicionar/remover
+      new SuggestionAgent(),
       new EnhancerAgent(),
     ];
   }
@@ -318,13 +358,14 @@ export class AgentOrchestrator {
 
 ✅ **Ordem correta**:
 ```typescript
-Interpreter → Data Query → Responder → Suggestion → Enhancer
+Interpreter → Data Query → MCP → Responder → Suggestion → Enhancer
 ```
 
 ❌ **Ordem errada**:
 ```typescript
-Suggestion → Responder  // Suggestion precisa da resposta!
-Data Query → Interpreter  // Query precisa da interpretação!
+MCP → Interpreter        // MCP precisa da interpretação!
+Suggestion → Responder   // Suggestion precisa da resposta!
+Data Query → Interpreter // Query precisa da interpretação!
 ```
 
 ---
@@ -369,7 +410,7 @@ Data Query → Interpreter  // Query precisa da interpretação!
            sports_leisure (1.664) e furniture_decor (1.591)."
 ```
 
-#### 4️⃣ Suggestion ⭐
+#### 4️⃣ Suggestion
 ```typescript
 → Contexto: pergunta sobre produtos + resposta com categorias
 → Output: [
@@ -419,7 +460,7 @@ Data Query → Interpreter  // Query precisa da interpretação!
 
 ## ✅ Checklist de Pipeline Saudável
 
-- [x] 5 agentes implementados
+- [x] 6 agentes implementados (Interpreter, DataQuery, MCP, Responder, Suggestion, Enhancer)
 - [x] Ordem de execução correta
 - [x] Cada agente com responsabilidade única
 - [x] Contexto passado entre agentes
@@ -428,9 +469,10 @@ Data Query → Interpreter  // Query precisa da interpretação!
 - [x] Type-safe 100%
 - [x] Testes cobrindo fluxo
 - [x] Documentação completa
+- [x] Integração MCP via HTTP ⭐
 
 ---
 
-**Status**: ✅ Pipeline completo com 5 agentes especializados  
-**Versão**: 1.3.0  
-**Data**: 2026-01-22
+**Status**: ✅ Pipeline completo com 6 agentes especializados  
+**Versão**: 2.0.0 (com MCP)  
+**Data**: 2026-01-25

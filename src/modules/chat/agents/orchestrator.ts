@@ -1,17 +1,35 @@
 import type { IAgent, AgentContext } from '../types/agent.types';
 import { InterpreterAgent } from './interpreter.agent';
 import { DataQueryAgent } from './data-query.agent';
+import { MCPAgent } from './mcp.agent';
 import { ResponderAgent } from './responder.agent';
 import { SuggestionAgent } from './suggestion.agent';
 import { EnhancerAgent } from './enhancer.agent';
+import type { MCPService } from '../../../infrastructure/mcp/mcp-service';
+import type { IAiProvider } from '../../../infrastructure/ai/ai-provider.interface';
+
+export type OrchestratorConfig = {
+  mcpService?: MCPService;
+  aiProvider: IAiProvider;
+  enableMCP?: boolean;
+};
 
 export class AgentOrchestrator {
   private agents: IAgent[];
 
-  constructor() {
+  constructor(config: OrchestratorConfig) {
     this.agents = [
       new InterpreterAgent(),
       new DataQueryAgent(),
+      ...(config.mcpService
+        ? [
+            new MCPAgent({
+              mcpService: config.mcpService,
+              aiProvider: config.aiProvider,
+              enabled: config.enableMCP ?? true,
+            }),
+          ]
+        : []),
       new ResponderAgent(),
       new SuggestionAgent(),
       new EnhancerAgent(),

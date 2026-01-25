@@ -23,4 +23,5 @@ export interface IAiProvider {
   complete(request: AiCompletionRequest): Promise<AiCompletionResponse>;
   analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>>;
   generateInsights(data: Record<string, unknown>): Promise<string[]>;
+  generateText(messages: AiMessage[]): Promise<string>;
 }

@@ -70,6 +70,18 @@ export class OpenAiProvider implements IAiProvider {
     }
   }
 
+  async generateText(messages: { role: string; content: string }[]): Promise<string> {
+    const response = await this.complete({
+      messages: messages.map((msg) => ({
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content,
+      })),
+      temperature: 0.7,
+      maxTokens: 1500,
+    });
+    return response.content;
+  }
+
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const prompt = `Analyze the following data and provide insights, patterns, and recommendations:
 

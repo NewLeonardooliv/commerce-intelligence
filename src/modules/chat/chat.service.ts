@@ -4,6 +4,9 @@ import { eq, desc } from 'drizzle-orm';
 import { AgentOrchestrator } from './agents/orchestrator';
 import type { AgentMessage } from './types/agent.types';
 import { generateId } from '@shared/utils/id.util';
+import { MCPService } from '../../infrastructure/mcp/mcp-service';
+import { loadMCPConfig, isMCPEnabled } from '../../config/mcp';
+import { aiService } from '../../infrastructure/ai/ai-service';
 
 type ChatSession = {
   id: number;
@@ -34,6 +37,7 @@ export type ChatResponse = {
   metadata: {
     interpretation?: unknown;
     dataUsed: boolean;
+    mcpUsed?: boolean;
     sources: string[];
     confidence: number;
     suggestions: string[];
@@ -46,9 +50,22 @@ export type ChatResponse = {
 
 class ChatService {
   private orchestrator: AgentOrchestrator;
+  private mcpService?: MCPService;
 
   constructor() {
-    this.orchestrator = new AgentOrchestrator();
+    if (isMCPEnabled()) {
+      const mcpServers = loadMCPConfig();
+      if (mcpServers.length > 0) {
+        this.mcpService = new MCPService(mcpServers);
+        console.log(`[Chat Service] MCP enabled with ${mcpServers.length} servers`);
+      }
+    }
+
+    this.orchestrator = new AgentOrchestrator({
+      mcpService: this.mcpService,
+      aiProvider: aiService.getProvider(),
+      enableMCP: !!this.mcpService,
+    });
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
@@ -119,6 +136,7 @@ class ChatService {
       metadata: {
         interpretation: context.interpretation,
         dataUsed: !!context.queryResults && context.queryResults.length > 0,
+        mcpUsed: !!context.mcpResults,
         sources: (responseMetadata.sources as string[]) || [],
         confidence: (responseMetadata.confidence as number) || 0.5,
         suggestions: (responseMetadata.suggestions as string[]) || [],
@@ -190,6 +208,66 @@ class ChatService {
       .where(eq(chatMessages.sessionId, sessionId))
       .orderBy(chatMessages.createdAt)
       .limit(50);
+  }
+
+  async getMCPTools() {
+    if (!this.mcpService) {
+      return { enabled: false, tools: [] };
+    }
+
+    try {
+      const tools = await this.mcpService.listAllTools();
+      return {
+        enabled: true,
+        count: tools.length,
+        tools: tools.map((tool) => ({
+          name: tool.name,
+          server: tool.serverName,
+          description: tool.description,
+          parameters: tool.inputSchema.properties,
+        })),
+      };
+    } catch (error) {
+      console.error('[Chat Service] Error listing MCP tools:', error);
+      return { enabled: true, error: String(error), tools: [] };
+    }
+  }
+
+  async getMCPHealth() {
+    if (!this.mcpService) {
+      return { enabled: false, servers: {} };
+    }
+
+    try {
+      const health = await this.mcpService.checkHealth();
+      return {
+        enabled: true,
+        servers: health,
+        allHealthy: Object.values(health).every((h) => h),
+      };
+    } catch (error) {
+      console.error('[Chat Service] Error checking MCP health:', error);
+      return { enabled: true, error: String(error), servers: {} };
+    }
+  }
+
+  async getMCPServers() {
+    if (!this.mcpService) {
+      return { enabled: false, servers: [] };
+    }
+
+    const servers = this.mcpService.getServers();
+    return {
+      enabled: true,
+      count: servers.length,
+      servers: servers.map((s) => ({
+        name: s.name,
+        url: s.url,
+        enabled: s.enabled,
+        description: s.description,
+        hasApiKey: !!s.apiKey,
+      })),
+    };
   }
 }
 

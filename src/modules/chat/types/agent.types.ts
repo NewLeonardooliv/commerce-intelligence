@@ -1,6 +1,7 @@
 export type AgentRole =
   | 'interpreter'
   | 'data_query'
+  | 'mcp'
   | 'responder'
   | 'suggestion'
   | 'enhancer';
@@ -18,6 +19,11 @@ export type AgentContext = {
   databaseSchema?: string;
   queryResults?: unknown[];
   interpretation?: InterpretationResult;
+  mcpResults?: {
+    tool: string;
+    server: string;
+    data: unknown;
+  };
   rawResponse?: string;
   suggestions?: string[];
 };
@@ -26,6 +32,7 @@ export type InterpretationResult = {
   intent: string;
   entities: Record<string, unknown>;
   requiresData: boolean;
+  requiresExternalTools?: boolean;
   suggestedQueries: string[];
   confidence: number;
 };

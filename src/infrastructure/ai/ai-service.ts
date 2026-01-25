@@ -22,6 +22,10 @@ export class AiService {
     }
   }
 
+  getProvider(): IAiProvider {
+    return this.provider;
+  }
+
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this.provider.analyzeData(data);
   }

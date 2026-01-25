@@ -18,6 +18,11 @@ export class MockAiProvider implements IAiProvider {
     };
   }
 
+  async generateText(messages: { role: string; content: string }[]): Promise<string> {
+    const lastMessage = messages[messages.length - 1];
+    return `Mock AI response to: ${lastMessage.content}`;
+  }
+
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     return {
       summary: 'Mock data analysis',

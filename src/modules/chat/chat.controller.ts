@@ -55,4 +55,46 @@ export const chatController = new Elysia({ prefix: '/chat' })
         tags: ['Chat'],
       },
     }
+  )
+  .get(
+    '/mcp/tools',
+    async () => {
+      const tools = await chatService.getMCPTools();
+      return successResponse(tools);
+    },
+    {
+      detail: {
+        summary: 'List MCP tools',
+        description: 'Get all available MCP tools from connected servers',
+        tags: ['Chat', 'MCP'],
+      },
+    }
+  )
+  .get(
+    '/mcp/health',
+    async () => {
+      const health = await chatService.getMCPHealth();
+      return successResponse(health);
+    },
+    {
+      detail: {
+        summary: 'Check MCP health',
+        description: 'Check connectivity status of all MCP servers',
+        tags: ['Chat', 'MCP'],
+      },
+    }
+  )
+  .get(
+    '/mcp/servers',
+    async () => {
+      const servers = await chatService.getMCPServers();
+      return successResponse(servers);
+    },
+    {
+      detail: {
+        summary: 'List MCP servers',
+        description: 'Get all configured MCP servers',
+        tags: ['Chat', 'MCP'],
+      },
+    }
   );
