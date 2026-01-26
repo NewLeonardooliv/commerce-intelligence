@@ -3,8 +3,6 @@ import type { MCPServerConfig } from '../infrastructure/mcp/mcp-service';
 export function loadMCPConfig(): MCPServerConfig[] {
   const servers: MCPServerConfig[] = [];
 
-  console.log('MCP_SERVER_1_URL', process.env.MCP_SERVER_1_URL);
-
   if (process.env.MCP_SERVER_1_URL) {
     servers.push({
       name: process.env.MCP_SERVER_1_NAME || 'mcp-server-1',

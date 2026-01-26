@@ -56,9 +56,17 @@ class ChatService {
     if (isMCPEnabled()) {
       const mcpServers = loadMCPConfig();
       if (mcpServers.length > 0) {
+        console.log(`[Chat Service] Initializing MCP with ${mcpServers.length} servers:`);
+        mcpServers.forEach((server) => {
+          console.log(`  - ${server.name}: ${server.url} (enabled: ${server.enabled})`);
+        });
         this.mcpService = new MCPService(mcpServers);
-        console.log(`[Chat Service] MCP enabled with ${mcpServers.length} servers`);
+        console.log(`[Chat Service] MCP service initialized`);
+      } else {
+        console.log('[Chat Service] MCP enabled but no servers configured');
       }
+    } else {
+      console.log('[Chat Service] MCP is disabled');
     }
 
     this.orchestrator = new AgentOrchestrator({
