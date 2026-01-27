@@ -6,6 +6,7 @@ import type { AgentMessage } from './types/agent.types';
 import { generateId } from '@shared/utils/id.util';
 import { MCPService } from '../../infrastructure/mcp/mcp-service';
 import { loadMCPConfig, isMCPEnabled } from '../../config/mcp';
+import { loadADKConfig, isADKEnabled } from '../../config/adk';
 import { aiService } from '../../infrastructure/ai/ai-service';
 
 type ChatSession = {
@@ -69,10 +70,26 @@ class ChatService {
       console.log('[Chat Service] MCP is disabled');
     }
 
+    const adkConfig = isADKEnabled() ? loadADKConfig() : undefined;
+    if (adkConfig?.enabled) {
+      console.log('[Chat Service] Google ADK enabled');
+      console.log(`  - Model: ${adkConfig.model}`);
+      console.log(`  - Google Search: ${adkConfig.useGoogleSearch}`);
+      if (adkConfig.replaceAgents) {
+        const replacedAgents = Object.entries(adkConfig.replaceAgents)
+          .filter(([_, enabled]) => enabled)
+          .map(([agent]) => agent);
+        if (replacedAgents.length > 0) {
+          console.log(`  - Replacing agents: ${replacedAgents.join(', ')}`);
+        }
+      }
+    }
+
     this.orchestrator = new AgentOrchestrator({
       mcpService: this.mcpService,
       aiProvider: aiService.getProvider(),
       enableMCP: !!this.mcpService,
+      adkConfig,
     });
   }
 
