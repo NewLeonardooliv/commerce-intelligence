@@ -21,6 +21,7 @@
     "@elysiajs/eden": "^1.1.5",
     "@elysiajs/swagger": "^1.1.5",
     "@google/adk": "^0.2.4",
+    "@toolbox-sdk/adk": "^0.1.5",
     "elysia": "^1.1.30",
     "openai": "^6.16.0"
   },
