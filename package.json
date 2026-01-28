@@ -9,6 +9,8 @@
     "build": "bun build src/app.ts --outdir dist --target bun",
     "test": "bun test",
     "test:watch": "bun test --watch",
+    "evals": "bun src/tests/evals/index.test.ts",
+    "evals:report": "bun src/tests/evals/cli.ts --all --report=all --output=./reports",
     "type-check": "bun tsc --noEmit",
     "format": "bunx prettier --write \"src/**/*.ts\"",
     "format:check": "bunx prettier --check \"src/**/*.ts\"",

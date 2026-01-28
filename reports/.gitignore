@@ -1,0 +1,7 @@
+# Ignore all eval reports
+*.html
+*.json
+*.md
+
+# But keep this directory in git
+!.gitignore
