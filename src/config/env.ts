@@ -25,6 +25,15 @@ export const env = {
   log: {
     level: process.env.LOG_LEVEL || 'info',
   },
+
+  mcp: {
+    serverUrl: process.env.MCP_SERVER_URL || 'http://localhost:8080/mcp',
+    enabled: process.env.MCP_ENABLED !== 'false',
+  },
+
+  google: {
+    apiKey: process.env.GOOGLE_API_KEY || '',
+  },
 } as const;
 
 export const isDevelopment = env.nodeEnv === 'development';
