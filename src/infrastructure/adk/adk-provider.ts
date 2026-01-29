@@ -1,4 +1,4 @@
-import { LlmAgent } from '@google/adk';
+import { LlmAgent, InMemoryRunner } from '@google/adk';
 import type { IAiProvider } from '../ai/ai-provider.interface';
 
 export type ADKAgentConfig = {
@@ -18,7 +18,7 @@ export class ADKProvider implements IAiProvider {
     this.agent = new LlmAgent({
       name: config.name,
       description: config.description,
-      model: config.model || 'gemini-2.0-flash-exp',
+      model: config.model || 'gemini-2.5-flash',
       instruction: config.instruction,
       tools: (config.tools || []) as any,
     });
@@ -28,11 +28,28 @@ export class ADKProvider implements IAiProvider {
     const lastMessage = messages[messages.length - 1];
     const userMessage = lastMessage?.content || '';
 
-    const result = await (this.agent as any).generate({
-      input: userMessage,
+    const runner = new InMemoryRunner({
+      agent: this.agent,
+      appName: 'commerce-intelligence',
     });
 
-    return result?.output || '';
+    let output = '';
+
+    for await (const event of runner.runAsync({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      newMessage: { parts: [{ text: userMessage }] },
+    })) {
+      if (event.content && Array.isArray(event.content)) {
+        for (const part of event.content) {
+          if (part.text) {
+            output += part.text;
+          }
+        }
+      }
+    }
+
+    return output || '';
   }
 
   async complete(request: {
@@ -62,12 +79,29 @@ export class ADKProvider implements IAiProvider {
   async analyzeData(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const prompt = `Analyze the following data and provide insights:\n${JSON.stringify(data, null, 2)}`;
 
-    const result = await (this.agent as any).generate({
-      input: prompt,
+    const runner = new InMemoryRunner({
+      agent: this.agent,
+      appName: 'commerce-intelligence',
     });
 
+    let output = '';
+
+    for await (const event of runner.runAsync({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      newMessage: { parts: [{ text: prompt }] },
+    })) {
+      if (event.content && Array.isArray(event.content)) {
+        for (const part of event.content) {
+          if (part.text) {
+            output += part.text;
+          }
+        }
+      }
+    }
+
     try {
-      const jsonMatch = result?.output?.match(/\{[\s\S]*\}/);
+      const jsonMatch = output?.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
@@ -76,7 +110,7 @@ export class ADKProvider implements IAiProvider {
     }
 
     return {
-      summary: result?.output || 'Analysis completed',
+      summary: output || 'Analysis completed',
       insights: [],
       patterns: [],
       recommendations: [],
@@ -86,12 +120,29 @@ export class ADKProvider implements IAiProvider {
   async generateInsights(data: Record<string, unknown>): Promise<string[]> {
     const prompt = `Based on this data, generate 5 actionable insights:\n${JSON.stringify(data, null, 2)}`;
 
-    const result = await (this.agent as any).generate({
-      input: prompt,
+    const runner = new InMemoryRunner({
+      agent: this.agent,
+      appName: 'commerce-intelligence',
     });
 
+    let output = '';
+
+    for await (const event of runner.runAsync({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      newMessage: { parts: [{ text: prompt }] },
+    })) {
+      if (event.content && Array.isArray(event.content)) {
+        for (const part of event.content) {
+          if (part.text) {
+            output += part.text;
+          }
+        }
+      }
+    }
+
     const insights =
-      result?.output
+      output
         ?.split('\n')
         .filter((line: string) => line.trim().length > 0)
         .slice(0, 5) || [];

@@ -1,4 +1,4 @@
-import { LlmAgent, GOOGLE_SEARCH } from '@google/adk';
+import { LlmAgent, GOOGLE_SEARCH, InMemoryRunner } from '@google/adk';
 import type {
   IAgent,
   AgentContext,
@@ -35,7 +35,7 @@ export class ADKAgentWrapper implements IAgent {
     this.adkAgent = new LlmAgent({
       name: config.name,
       description: config.description,
-      model: config.model || 'gemini-2.0-flash-exp',
+      model: config.model || 'gemini-2.5-flash',
       instruction: config.instruction,
       tools: tools.length > 0 ? (tools as any) : undefined,
     });
@@ -44,18 +44,50 @@ export class ADKAgentWrapper implements IAgent {
   async process(context: AgentContext): Promise<AgentContext> {
     try {
       console.log(`[ADK Agent ${this.role}] Processing...`);
-
       const conversationText = this.buildConversationText(context);
 
-      const result = await (this.adkAgent as any).generate({
-        input: conversationText,
+      const runner = new InMemoryRunner({
+        agent: this.adkAgent,
+        appName: 'commerce-intelligence',
       });
 
-      const output = result?.output || 'No response generated';
+      let finalOutput = '';
+      const userId = 'user-1';
+      const sessionId = `session-${Date.now()}`;
+
+      runner.sessionService.createSession({
+        userId,
+        sessionId,
+        appName: 'commerce-intelligence',
+      });
+
+      const runStream = runner.runAsync({
+        userId,
+        sessionId,
+        newMessage: { parts: [{ text: conversationText }] },
+      });
+
+      for await (const event of runStream) {
+        console.log(`[DEBUG EVENT]:`, JSON.stringify(event));
+
+        const content = (event as any).content;
+
+        if (content?.parts && Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.text) finalOutput += part.text;
+          }
+        } else if ((event as any).text) {
+          finalOutput += (event as any).text;
+        }
+      }
+
+      if (!finalOutput) {
+        finalOutput = "O modelo não retornou conteúdo. Verifique as permissões da API Key.";
+      }
 
       context.conversationHistory.push({
         role: 'assistant',
-        content: output,
+        content: finalOutput,
         metadata: {
           agent: this.role,
           adkAgent: true,
@@ -64,7 +96,6 @@ export class ADKAgentWrapper implements IAgent {
       });
 
       console.log(`[ADK Agent ${this.role}] Completed`);
-
       return context;
     } catch (error) {
       console.error(`[ADK Agent ${this.role}] Error:`, error);

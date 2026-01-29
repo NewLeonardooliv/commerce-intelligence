@@ -33,7 +33,7 @@ export class MCPAgent implements IAgent {
         });
 
         this.adkAgent = new LlmAgent({
-          model: 'gemini-2.0-flash-exp',
+          model: 'gemini-2.5-flash',
           name: 'mcp_agent',
           instruction: `Você é um assistente especializado em usar ferramentas MCP para obter informações externas e complementares.
           

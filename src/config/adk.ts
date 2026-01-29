@@ -13,7 +13,7 @@ export type ADKConfig = {
 export function loadADKConfig(): ADKConfig {
   return {
     enabled: process.env.ENABLE_ADK === 'true',
-    model: process.env.ADK_MODEL || 'gemini-2.0-flash-exp',
+    model: process.env.ADK_MODEL || 'gemini-2.5-flash',
     useGoogleSearch: process.env.ADK_USE_GOOGLE_SEARCH === 'true',
     replaceAgents: {
       interpreter: process.env.ADK_REPLACE_INTERPRETER === 'true',
