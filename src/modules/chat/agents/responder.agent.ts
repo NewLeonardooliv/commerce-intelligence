@@ -1,58 +1,110 @@
 import type { IAgent, AgentContext } from '../types/agent.types';
-import { aiService } from '@infrastructure/ai/ai-service';
+import { LlmAgent, InMemoryRunner } from '@google/adk';
 
 export class ResponderAgent implements IAgent {
   role = 'responder' as const;
+  private adkAgent: LlmAgent;
+
+  constructor() {
+    this.adkAgent = new LlmAgent({
+      name: 'responder',
+      description: 'Generates responses based on data and context',
+      model: 'gemini-2.5-flash',
+      instruction: `You are a response generator for e-commerce analytics.
+
+Your task: Create a clear, informative response in Portuguese based on the data provided.
+
+IMPORTANT:
+- Answer EXACTLY what the user asked
+- Use data from Database Results section
+- Be specific with numbers and statistics
+- Use Portuguese (pt-BR)
+- Keep it conversational but professional
+- Return ONLY the response text, no metadata`,
+    });
+  }
 
   async process(context: AgentContext): Promise<AgentContext> {
+    // Skip if no interpretation or data
+    if (!context.interpretation && !context.queryResults && !context.mcpResults) {
+      console.log(`[${this.role}] Skipping - no data available`);
+      return context;
+    }
+
+    console.log(`[${this.role}] Generating response...`);
+
     const response = await this.generateResponse(context);
+
+    console.log(`[${this.role}] Response generated`);
 
     return {
       ...context,
       rawResponse: response,
-      conversationHistory: [
-        ...context.conversationHistory,
-        {
-          role: 'assistant',
-          content: response,
-          metadata: { agent: 'responder' },
-        },
-      ],
     };
   }
 
   private async generateResponse(context: AgentContext): Promise<string> {
-    const hasData = context.queryResults && context.queryResults.length > 0;
+    try {
+      const runner = new InMemoryRunner({
+        agent: this.adkAgent,
+        appName: 'commerce-intelligence',
+      });
 
-    const prompt = `Você é um assistente especializado em análise de dados de e-commerce Olist.
+      const userId = 'user-1';
+      const sessionId = `session-${Date.now()}`;
 
-PERGUNTA ORIGINAL DO USUÁRIO: "${context.userQuery}"
+      runner.sessionService.createSession({
+        userId,
+        sessionId,
+        appName: 'commerce-intelligence',
+      });
 
-${context.interpretation ? `Interpretação: ${context.interpretation.intent}` : ''}
+      const prompt = this.buildPrompt(context);
 
-${hasData ? `Dados encontrados:\n${JSON.stringify(context.queryResults, null, 2)}` : 'Nenhum dado disponível.'}
+      let output = '';
+      const runStream = runner.runAsync({
+        userId,
+        sessionId,
+        newMessage: { parts: [{ text: prompt }] },
+      });
 
-IMPORTANTE: Responda EXATAMENTE o que foi perguntado. Não desvie do assunto.
+      for await (const event of runStream) {
+        const content = (event as any).content;
+        if (content?.parts && Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.text) output += part.text;
+          }
+        } else if ((event as any).text) {
+          output += (event as any).text;
+        }
+      }
 
-IDIOMA: Responda SEMPRE em PORTUGUÊS (pt-BR), independente do idioma da pergunta.
+      return output || 'Não foi possível gerar uma resposta adequada.';
+    } catch (error) {
+      console.error(`[${this.role}] Error:`, error);
+      return 'Desculpe, ocorreu um erro ao gerar a resposta.';
+    }
+  }
 
-Diretrizes:
-- Responda DIRETAMENTE a pergunta feita
-- Se perguntaram "quais produtos", liste produtos ou categorias
-- Se perguntaram "quantos", dê o número total
-- Se perguntaram "faturamento", foque em valores monetários
-- Use números e estatísticas dos dados retornados
-- Se houver muitos registros, resuma os principais (top 5-10)
-- Seja conversacional mas FOCADO na pergunta
-- NÃO invente informações que não estão nos dados
-- NÃO desvie para análises não solicitadas
-- SEMPRE use português brasileiro na resposta`;
+  private buildPrompt(context: AgentContext): string {
+    const parts: string[] = [];
 
-    const insights = await aiService.generateInsights({
-      prompt,
-      context,
-    });
+    parts.push(`User asked: "${context.userQuery}"\n`);
 
-    return insights[0] || 'Não foi possível gerar uma resposta adequada.';
+    if (context.interpretation) {
+      parts.push(`Intent: ${context.interpretation.intent}\n`);
+    }
+
+    if (context.queryResults && context.queryResults.length > 0) {
+      parts.push(`Database Results:\n${JSON.stringify(context.queryResults, null, 2)}\n`);
+    }
+
+    if (context.mcpResults) {
+      parts.push(`External Data:\n${JSON.stringify(context.mcpResults, null, 2)}\n`);
+    }
+
+    parts.push(`Generate a clear response in Portuguese based on the data above.`);
+
+    return parts.join('\n');
   }
 }

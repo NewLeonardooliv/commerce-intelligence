@@ -1,15 +1,41 @@
 import type { IAgent, AgentContext, EnhancedResponse } from '../types/agent.types';
-import { aiService } from '@infrastructure/ai/ai-service';
+import { LlmAgent, InMemoryRunner } from '@google/adk';
 
 export class EnhancerAgent implements IAgent {
   role = 'enhancer' as const;
+  private adkAgent: LlmAgent;
+
+  constructor() {
+    this.adkAgent = new LlmAgent({
+      name: 'enhancer',
+      description: 'Enhances and refines responses',
+      model: 'gemini-2.5-flash',
+      instruction: `You are a response enhancer for e-commerce analytics.
+
+Your task: Improve the Current Response to make it clearer and more professional.
+
+IMPORTANT:
+- Make the response clearer and more structured
+- Keep it in Portuguese (pt-BR)
+- Highlight important metrics
+- Add appropriate formatting
+- Keep professional but accessible tone
+- Return ONLY the enhanced response text`,
+    });
+  }
 
   async process(context: AgentContext): Promise<AgentContext> {
+    // Skip if no raw response
     if (!context.rawResponse) {
+      console.log(`[${this.role}] Skipping - no response to enhance`);
       return context;
     }
 
+    console.log(`[${this.role}] Enhancing response...`);
+
     const enhanced = await this.enhanceResponse(context);
+
+    console.log(`[${this.role}] Response enhanced`);
 
     return {
       ...context,
@@ -30,38 +56,76 @@ export class EnhancerAgent implements IAgent {
   }
 
   private async enhanceResponse(context: AgentContext): Promise<EnhancedResponse> {
-    const prompt = `Você é um editor especializado em melhorar respostas sobre dados de negócios.
+    try {
+      const runner = new InMemoryRunner({
+        agent: this.adkAgent,
+        appName: 'commerce-intelligence',
+      });
 
-Resposta original:
-"${context.rawResponse}"
+      const userId = 'user-1';
+      const sessionId = `session-${Date.now()}`;
 
-Dados utilizados: ${context.queryResults ? 'Sim' : 'Não'}
+      runner.sessionService.createSession({
+        userId,
+        sessionId,
+        appName: 'commerce-intelligence',
+      });
 
-IDIOMA: A resposta DEVE ser SEMPRE em PORTUGUÊS (pt-BR), independente do idioma original.
+      const prompt = this.buildPrompt(context);
 
-Melhore esta resposta seguindo estas diretrizes:
-1. Torne mais clara e estruturada em PORTUGUÊS
-2. Adicione formatação apropriada (se aplicável)
-3. Destaque métricas importantes
-4. Mantenha tom profissional mas acessível
-5. Se a resposta original estiver em outro idioma, TRADUZA para português brasileiro
+      let output = '';
+      const runStream = runner.runAsync({
+        userId,
+        sessionId,
+        newMessage: { parts: [{ text: prompt }] },
+      });
 
-Retorne APENAS a resposta melhorada em português brasileiro.`;
+      for await (const event of runStream) {
+        const content = (event as any).content;
+        if (content?.parts && Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.text) output += part.text;
+          }
+        } else if ((event as any).text) {
+          output += (event as any).text;
+        }
+      }
 
-    const insights = await aiService.generateInsights({
-      prompt,
-      rawResponse: context.rawResponse,
-      context,
-    });
+      const enhancedText = output || context.rawResponse!;
 
-    const enhancedText = insights[0] || context.rawResponse!;
+      return {
+        content: enhancedText,
+        sources: this.extractSources(context),
+        confidence: this.calculateConfidence(context),
+        suggestions: context.suggestions || [],
+      };
+    } catch (error) {
+      console.error(`[${this.role}] Error:`, error);
+      return {
+        content: context.rawResponse!,
+        sources: this.extractSources(context),
+        confidence: this.calculateConfidence(context),
+        suggestions: context.suggestions || [],
+      };
+    }
+  }
 
-    return {
-      content: enhancedText,
-      sources: this.extractSources(context),
-      confidence: this.calculateConfidence(context),
-      suggestions: context.suggestions || [],
-    };
+  private buildPrompt(context: AgentContext): string {
+    const parts: string[] = [];
+
+    parts.push(`User asked: "${context.userQuery}"\n`);
+
+    if (context.rawResponse) {
+      parts.push(`Current Response:\n"${context.rawResponse}"\n`);
+    }
+
+    if (context.queryResults && context.queryResults.length > 0) {
+      parts.push(`Data was used: Yes (${context.queryResults.length} records)\n`);
+    }
+
+    parts.push(`Enhance this response to make it clearer and more professional in Portuguese.`);
+
+    return parts.join('\n');
   }
 
   private extractSources(context: AgentContext): string[] {

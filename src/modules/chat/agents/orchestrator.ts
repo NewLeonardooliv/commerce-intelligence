@@ -7,7 +7,6 @@ import { SuggestionAgent } from './suggestion.agent';
 import { EnhancerAgent } from './enhancer.agent';
 import type { MCPService } from '../../../infrastructure/mcp/mcp-service';
 import type { IAiProvider } from '../../../infrastructure/ai/ai-provider.interface';
-import { ADKAgentWrapper } from '../../../infrastructure/adk/adk-agent-wrapper';
 import type { ADKConfig } from '../../../config/adk';
 
 export type OrchestratorConfig = {
@@ -22,64 +21,30 @@ export class AgentOrchestrator {
 
   constructor(config: OrchestratorConfig) {
     const adkConfig = config.adkConfig;
-    const useADK = adkConfig?.enabled ?? false;
+
+    if (!adkConfig?.enabled) {
+      throw new Error('ADK must be enabled. Please configure ADK in your environment.');
+    }
 
     this.agents = [
-      useADK && adkConfig?.replaceAgents?.interpreter
-        ? new ADKAgentWrapper({
-            name: 'interpreter',
-            description: 'Interprets user queries and extracts intent',
-            role: 'adk_interpreter',
-            model: adkConfig.model,
-            instruction:
-              'You are an intent interpreter. Analyze the user query and extract the intent, entities, and determine if data is needed.',
-            useGoogleSearch: false,
-          })
-        : new InterpreterAgent(),
+      new InterpreterAgent(),
       new DataQueryAgent(),
       ...(config.mcpService
         ? [
-            new MCPAgent({
-              mcpService: config.mcpService,
-              aiProvider: config.aiProvider,
-              enabled: config.enableMCP ?? true,
-            }),
-          ]
+          new MCPAgent({
+            mcpService: config.mcpService,
+            aiProvider: config.aiProvider,
+            enabled: config.enableMCP ?? true,
+          }),
+        ]
         : []),
-      useADK && adkConfig?.replaceAgents?.responder
-        ? new ADKAgentWrapper({
-            name: 'responder',
-            description: 'Generates responses based on data and context',
-            role: 'adk_responder',
-            model: adkConfig.model,
-            instruction:
-              'You are a response generator. Create clear, informative responses in Portuguese based on the data provided.',
-            useGoogleSearch: adkConfig.useGoogleSearch,
-          })
-        : new ResponderAgent(),
-      useADK && adkConfig?.replaceAgents?.suggestion
-        ? new ADKAgentWrapper({
-            name: 'suggestion',
-            description: 'Generates follow-up question suggestions',
-            role: 'adk_suggestion',
-            model: adkConfig.model,
-            instruction:
-              'You are a suggestion generator. Create 3 relevant follow-up questions in Portuguese.',
-            useGoogleSearch: false,
-          })
-        : new SuggestionAgent(),
-      useADK && adkConfig?.replaceAgents?.enhancer
-        ? new ADKAgentWrapper({
-            name: 'enhancer',
-            description: 'Enhances and refines responses',
-            role: 'adk_enhancer',
-            model: adkConfig.model,
-            instruction:
-              'You are a response enhancer. Refine and improve the response quality in Portuguese.',
-            useGoogleSearch: false,
-          })
-        : new EnhancerAgent(),
+      new ResponderAgent(),
+      new SuggestionAgent(),
+      new EnhancerAgent(),
     ];
+
+    console.log('[Orchestrator] Initialized with ADK-native agents');
+    console.log(`[Orchestrator] Total agents: ${this.agents.length}`);
   }
 
   async process(

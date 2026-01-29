@@ -16,18 +16,7 @@ export class DataQueryAgent implements IAgent {
     return {
       ...context,
       queryResults: queryResult.data,
-      conversationHistory: [
-        ...context.conversationHistory,
-        {
-          role: 'tool',
-          content: `Consulta executada: ${queryResult.sql}`,
-          metadata: {
-            agent: 'data_query',
-            rowCount: queryResult.data.length,
-            summary: queryResult.summary,
-          },
-        },
-      ],
+      // Don't add to conversation history - this is internal processing
     };
   }
 

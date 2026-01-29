@@ -4,11 +4,7 @@ export type AgentRole =
   | 'mcp'
   | 'responder'
   | 'suggestion'
-  | 'enhancer'
-  | 'adk_interpreter'
-  | 'adk_responder'
-  | 'adk_suggestion'
-  | 'adk_enhancer';
+  | 'enhancer';
 
 export type AgentMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';

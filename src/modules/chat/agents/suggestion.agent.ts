@@ -1,96 +1,122 @@
 import type { IAgent, AgentContext } from '../types/agent.types';
-import { aiService } from '@infrastructure/ai/ai-service';
+import { LlmAgent, InMemoryRunner } from '@google/adk';
 
 export class SuggestionAgent implements IAgent {
   role = 'suggestion' as const;
+  private adkAgent: LlmAgent;
+
+  constructor() {
+    this.adkAgent = new LlmAgent({
+      name: 'suggestion',
+      description: 'Generates follow-up question suggestions',
+      model: 'gemini-2.5-flash',
+      instruction: `You are a suggestion generator for e-commerce analytics.
+
+Your task: Create 3 relevant follow-up questions in Portuguese based on the current conversation.
+
+IMPORTANT:
+- Return ONLY 3 questions, one per line
+- Questions should be complete and natural
+- Use Portuguese (pt-BR)
+- No numbering, bullets, or markdown
+- Questions should explore different aspects of the data`,
+    });
+  }
 
   async process(context: AgentContext): Promise<AgentContext> {
+    // Skip if no response yet
+    if (!context.rawResponse) {
+      console.log(`[${this.role}] Skipping - no response to base suggestions on`);
+      return context;
+    }
+
+    console.log(`[${this.role}] Generating suggestions...`);
+
     const suggestions = await this.generateSuggestions(context);
+
+    console.log(`[${this.role}] Suggestions generated:`, suggestions);
 
     return {
       ...context,
       suggestions,
-      conversationHistory: [
-        ...context.conversationHistory,
-        {
-          role: 'assistant',
-          content: `Sugestões: ${suggestions.join('; ')}`,
-          metadata: {
-            agent: 'suggestion',
-            suggestions,
-          },
-        },
-      ],
     };
   }
 
   private async generateSuggestions(context: AgentContext): Promise<string[]> {
-    const prompt = `Você é um assistente especializado em sugerir próximas perguntas sobre dados de e-commerce.
+    try {
+      const runner = new InMemoryRunner({
+        agent: this.adkAgent,
+        appName: 'commerce-intelligence',
+      });
 
-Contexto da conversa:
-Pergunta do usuário: "${context.userQuery}"
-${context.interpretation ? `Intenção: ${context.interpretation.intent}` : ''}
-${context.queryResults ? `Dados consultados: ${context.queryResults.length} registros` : ''}
-${context.rawResponse ? `Resposta gerada: "${context.rawResponse.substring(0, 150)}..."` : ''}
+      const userId = 'user-1';
+      const sessionId = `session-${Date.now()}`;
 
-IMPORTANTE: Baseado no contexto acima, sugira 3 perguntas RELEVANTES que o usuário pode querer fazer em seguida.
+      runner.sessionService.createSession({
+        userId,
+        sessionId,
+        appName: 'commerce-intelligence',
+      });
 
-IDIOMA: Todas as sugestões DEVEM estar em PORTUGUÊS (pt-BR).
+      const prompt = this.buildPrompt(context);
 
-Diretrizes:
-1. Sugestões devem ser perguntas completas e naturais
-2. Relacionadas ao contexto da conversa atual
-3. Explorar diferentes aspectos dos dados (análises complementares)
-4. Variar entre perguntas simples e análises mais profundas
-5. Focar em insights acionáveis
+      let output = '';
+      const runStream = runner.runAsync({
+        userId,
+        sessionId,
+        newMessage: { parts: [{ text: prompt }] },
+      });
 
-Exemplos de boas sugestões:
-- "Quais são as 10 categorias com mais vendas?"
-- "Como está a distribuição de clientes por região?"
-- "Qual o ticket médio dos pedidos nos últimos 3 meses?"
-- "Quais produtos têm melhor avaliação?"
-- "Como está a taxa de entrega no prazo?"
-
-Retorne APENAS as 3 perguntas, uma por linha, sem numeração ou markdown:`;
-
-    const insights = await aiService.generateInsights({
-      prompt,
-      userQuery: context.userQuery,
-      context,
-    });
-
-    const suggestionsText = insights[0] || '';
-    const parsedSuggestions = this.parseSuggestions(suggestionsText);
-
-    return parsedSuggestions.length > 0
-      ? parsedSuggestions
-      : this.getDefaultSuggestions(context);
-  }
-
-  private parseSuggestions(text: string): string[] {
-    const suggestions: string[] = [];
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-      const cleaned = line
-        .replace(/^\d+[\.\)]\s*/, '')
-        .replace(/^[-*•]\s*/, '')
-        .replace(/^["']\s*/, '')
-        .replace(/\s*["']$/, '')
-        .trim();
-
-      if (cleaned && cleaned.length > 10 && suggestions.length < 3) {
-        if (
-          cleaned.endsWith('?') ||
-          cleaned.includes('qual') ||
-          cleaned.includes('quantos')
-        ) {
-          suggestions.push(cleaned);
+      for await (const event of runStream) {
+        const content = (event as any).content;
+        if (content?.parts && Array.isArray(content.parts)) {
+          for (const part of content.parts) {
+            if (part.text) output += part.text;
+          }
+        } else if ((event as any).text) {
+          output += (event as any).text;
         }
       }
+
+      return this.parseSuggestions(output, context);
+    } catch (error) {
+      console.error(`[${this.role}] Error:`, error);
+      return this.getDefaultSuggestions(context);
+    }
+  }
+
+  private buildPrompt(context: AgentContext): string {
+    const parts: string[] = [];
+
+    parts.push(`User asked: "${context.userQuery}"\n`);
+
+    if (context.rawResponse) {
+      parts.push(`Response given: "${context.rawResponse}"\n`);
     }
 
-    return suggestions;
+    parts.push(`Generate 3 relevant follow-up questions in Portuguese, one per line, no formatting.`);
+
+    return parts.join('\n');
+  }
+
+  private parseSuggestions(output: string, context: AgentContext): string[] {
+    const lines = output.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 10)
+      .map(line => {
+        // Remove numbering (1., 1), 2., etc)
+        let cleaned = line.replace(/^\d+[\.\)]\s*/, '');
+        // Remove bullets
+        cleaned = cleaned.replace(/^[-*•]\s*/, '');
+        // Remove quotes
+        cleaned = cleaned.replace(/^["']\s*/, '').replace(/\s*["']$/, '');
+        return cleaned.trim();
+      })
+      .filter(line => line.length > 0);
+
+    const suggestions = lines.slice(0, 3);
+
+    return suggestions.length > 0 ? suggestions : this.getDefaultSuggestions(context);
   }
 
   private getDefaultSuggestions(context: AgentContext): string[] {

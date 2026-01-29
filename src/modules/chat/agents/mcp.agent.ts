@@ -109,37 +109,8 @@ Sempre seja objetivo e retorne informações relevantes para a consulta do usuá
       console.log('[MCP Agent] Prompt:', prompt);
 
       // Note: Direct execution requires ADK Runner
-      // For now, we'll use a simplified response
-      const response = {
-        text: 'ADK agent is ready to process MCP tools. Integration requires ADK Runner setup.',
-      };
-
-      // Add the response to conversation history
-      context.conversationHistory.push({
-        role: 'assistant',
-        content: response.text,
-        metadata: {
-          agent: this.role,
-          method: 'adk',
-        },
-      });
-
-      // Store MCP results
-      context.mcpResults = {
-        tool: 'adk_agent',
-        server: 'google_adk',
-        data: {
-          content: [
-            {
-              type: 'text',
-              text: response.text,
-            },
-          ],
-          isError: false,
-        },
-      };
-
-      console.log('[MCP Agent] Successfully processed with ADK');
+      // For now, skip MCP processing and let it be handled later when fully integrated
+      console.log('[MCP Agent] Skipping ADK MCP processing - not fully integrated yet');
 
       return context;
     } catch (error) {
@@ -245,16 +216,20 @@ Seja objetivo e retorne informações relevantes e bem formatadas.`;
   }
 
   private shouldUseMCP(context: AgentContext): boolean {
-    return true;
+    // Check if interpretation explicitly requires external tools
     if (context.interpretation?.requiresExternalTools) {
+      return true;
     }
 
+    // Check for keywords that suggest external data is needed
     const mcpKeywords = [
       'buscar na web',
       'pesquisar online',
       'informação externa',
       'dados externos',
       'api externa',
+      'pesquisar',
+      'buscar',
     ];
 
     const query = context.userQuery.toLowerCase();
