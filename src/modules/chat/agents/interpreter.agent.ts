@@ -8,24 +8,43 @@ export class InterpreterAgent implements IAgent {
   constructor() {
     this.adkAgent = new LlmAgent({
       name: 'interpreter',
+      generateContentConfig: { stream: true } as any,
       description: 'Interprets user queries and extracts intent',
       model: 'gemini-2.5-flash',
       instruction: `You are an intent interpreter for an e-commerce analytics system.
 
-Your task: Analyze the user query and return ONLY a JSON object with this exact structure:
+Your task is to analyze the user query and return ONLY a valid JSON object with this exact structure:
+
 {
   "intent": "clear description of what the user wants in Portuguese",
-  "entities": { "key": "value" },
-  "requiresData": true or false (true if needs database query),
+  "entities": {
+    "category": string | null,
+    "months_ahead": number | null
+  },
+  "requiresData": boolean,
+  "requiresExternalTools": boolean,
   "suggestedQueries": [],
-  "confidence": 0.0-1.0
+  "confidence": number
 }
 
-IMPORTANT:
-- ALWAYS return valid JSON, nothing else
-- Set requiresData to true for questions about products, sales, customers, orders
-- Use Portuguese for the intent description
-- Be specific about what data is needed`,
+RULES:
+- ALWAYS return valid JSON and NOTHING else.
+- Use Portuguese for the intent.
+- Be precise and structured.
+
+FORECAST RULES:
+If the user asks about prediction, forecast, projection, or future values (previsão, prever, projeção, forecast):
+- requiresExternalTools MUST be true
+- requiresData MUST be false
+- Extract months_ahead if mentioned (e.g. "próximos 3 meses" → 3). If not mentioned, use null.
+- Extract category if mentioned. If not mentioned, use null.
+
+HISTORICAL DATA RULES:
+If the user asks about past or current data (sales, customers, orders, products):
+- requiresData MUST be true
+- requiresExternalTools MUST be false
+
+Return ONLY the JSON object.`,
     });
   }
 
@@ -58,13 +77,20 @@ IMPORTANT:
         appName: 'commerce-intelligence',
       });
 
-      const prompt = `Analyze this user query and return the interpretation as JSON:\n\n"${query}"\n\nReturn ONLY valid JSON with: intent, entities, requiresData, suggestedQueries, confidence`;
+      const prompt = `Analyze the following user query and return the interpretation as JSON.
+
+      User query:
+      "${query}"
+
+      Return ONLY valid JSON with:
+      intent, entities { category, months_ahead }, requiresData, requiresExternalTools, suggestedQueries, confidence`;
+
 
       let output = '';
       const runStream = runner.runAsync({
         userId,
         sessionId,
-        newMessage: { parts: [{ text: prompt }] },
+        newMessage: { role: 'user', parts: [{ text: prompt }] },
       });
 
       for await (const event of runStream) {
@@ -96,7 +122,8 @@ IMPORTANT:
         return {
           intent: parsed.intent || 'Análise geral de dados',
           entities: parsed.entities || {},
-          requiresData: parsed.requiresData !== false, // Default to true
+          requiresData: parsed.requiresData === true,
+          requiresExternalTools: parsed.requiresExternalTools === true,
           suggestedQueries: parsed.suggestedQueries || [],
           confidence: parsed.confidence || 0.7,
         };
@@ -113,6 +140,7 @@ IMPORTANT:
       intent: 'Análise de dados de e-commerce',
       entities: {},
       requiresData: true,
+      requiresExternalTools: false,
       suggestedQueries: [],
       confidence: 0.5,
     };

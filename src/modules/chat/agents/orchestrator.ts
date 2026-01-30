@@ -1,5 +1,7 @@
 import type { IAgent, AgentContext } from '../types/agent.types';
 import { InterpreterAgent } from './interpreter.agent';
+import { CategoryLookupAgent } from './category-lookup.agent';
+import { PredictAgent } from './predict.agent';
 import { DataQueryAgent } from './data-query.agent';
 import { MCPAgent } from './mcp.agent';
 import { ResponderAgent } from './responder.agent';
@@ -28,6 +30,8 @@ export class AgentOrchestrator {
 
     this.agents = [
       new InterpreterAgent(),
+      new CategoryLookupAgent(), 
+      new PredictAgent(), 
       new DataQueryAgent(),
       ...(config.mcpService
         ? [
@@ -61,6 +65,13 @@ export class AgentOrchestrator {
     console.log(`[Orchestrator] Processing query: "${userQuery}"`);
 
     for (const agent of this.agents) {
+      if (context.halt) {
+        console.log(
+          `[Orchestrator] Halting pipeline`
+        );
+        break; 
+      }
+
       console.log(`[Orchestrator] Running agent: ${agent.role}`);
 
       try {
@@ -98,6 +109,8 @@ export class AgentOrchestrator {
     const steps: Array<{ agent: string; result: string }> = [];
 
     for (const agent of this.agents) {
+      if (context.halt) break;
+
       const beforeCount = context.conversationHistory.length;
       context = await agent.process(context);
       const afterCount = context.conversationHistory.length;

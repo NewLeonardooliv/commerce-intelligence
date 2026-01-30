@@ -26,7 +26,7 @@ IMPORTANT:
 
   async process(context: AgentContext): Promise<AgentContext> {
     // Skip if no interpretation or data
-    if (!context.interpretation && !context.queryResults && !context.mcpResults) {
+    if (!context.interpretation && !context.queryResults && !context.mcpResults && !context.predictResults) {
       console.log(`[${this.role}] Skipping - no data available`);
       return context;
     }
@@ -65,7 +65,7 @@ IMPORTANT:
       const runStream = runner.runAsync({
         userId,
         sessionId,
-        newMessage: { parts: [{ text: prompt }] },
+        newMessage: { role: 'user', parts: [{ text: prompt }] },
       });
 
       for await (const event of runStream) {
@@ -101,6 +101,10 @@ IMPORTANT:
 
     if (context.mcpResults) {
       parts.push(`External Data:\n${JSON.stringify(context.mcpResults, null, 2)}\n`);
+    }
+
+    if (context.predictResults?.summaryText) {
+      parts.push(`Forecast Results:\n${context.predictResults.summaryText}\n`);
     }
 
     parts.push(`Generate a clear response in Portuguese based on the data above.`);

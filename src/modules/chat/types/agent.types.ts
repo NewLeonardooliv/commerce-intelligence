@@ -1,5 +1,7 @@
 export type AgentRole =
   | 'interpreter'
+  | 'category_lookup'
+  | 'predict'
   | 'data_query'
   | 'mcp'
   | 'responder'
@@ -17,7 +19,12 @@ export type AgentContext = {
   userQuery: string;
   conversationHistory: AgentMessage[];
   databaseSchema?: string;
-  queryResults?: unknown[];
+  predictResults?: {
+    months_ahead: number;
+    category?: string;
+    raw: unknown;
+    summaryText: string;
+  };
   interpretation?: InterpretationResult;
   mcpResults?: {
     tool: string;
@@ -26,6 +33,7 @@ export type AgentContext = {
   };
   rawResponse?: string;
   suggestions?: string[];
+  halt?: true;
 };
 
 export type InterpretationResult = {

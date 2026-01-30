@@ -77,7 +77,7 @@ IMPORTANT:
       const runStream = runner.runAsync({
         userId,
         sessionId,
-        newMessage: { parts: [{ text: prompt }] },
+        newMessage: { role: 'user', parts: [{ text: prompt }] }
       });
 
       for await (const event of runStream) {
